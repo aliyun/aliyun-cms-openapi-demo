@@ -153,12 +153,14 @@ public class CustomMonitorApiSample {
         params.put("ContactGroups", "[\"your_contact_group_name\"]");
         //必选，设置统计方式
         params.put("Statistics", "Average");
+        //可选，设置查询周期，单位为s,只能设置成：60, 300, 900, 60*N
+        params.put("Period", "60");
         //必选，设置比较符
         params.put("ComparisonOperator", ">");
         //必选，设置报警阈值
         params.put("Threshold", "1000");
         //可选，设置连续探测几次都满足阈值条件时报警，默认3次
-        params.put("EvaluationCount", "2");
+        params.put("EvaluationCount", "3");
         //可选，报警生效时间的开始时间，默认0，代表0点
         params.put("StartTime", "1");
         //可选，报警生效时间的结束时间，默认24，代表24点

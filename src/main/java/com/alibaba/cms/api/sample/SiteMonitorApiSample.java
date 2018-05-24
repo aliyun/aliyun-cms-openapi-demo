@@ -158,7 +158,7 @@ public class SiteMonitorApiSample {
         params.put("MetricName", metricName);
         //必选，报警规则对应实例列表,为json array对应的string
         params.put("Dimensions", String.format("[{\"taskId\":\"%s\"}]", taskId));
-        //可选，设置查询周期，单位为s,只能设置成：60, 300, 900
+        //可选，设置查询周期，单位为s,只能设置成：60, 300, 900, 60*N
         params.put("Period", "60");
         //必选，设置统计方式
         params.put("Statistics", statistics);
@@ -213,7 +213,7 @@ public class SiteMonitorApiSample {
     }
 
     /**
-     * 修改站点监控
+     * 修改站点监控,返回站点监控任务id
      */
     public static void modifyTask(String taskId) {
         String httpMethod = "GET";
