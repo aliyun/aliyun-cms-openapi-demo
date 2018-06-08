@@ -154,7 +154,7 @@ public class SiteMonitorSdkSample {
     }
 
     /**
-     * 创建站点监控，返回站点监控任务id
+     * 修改站点监控，返回站点监控任务id
      */
     public static void modifyTask(String taskId) {
         IClientProfile profile = DefaultProfile.getProfile(REGION_ID_BEIJING, accessKeyId, accessKeySecret);

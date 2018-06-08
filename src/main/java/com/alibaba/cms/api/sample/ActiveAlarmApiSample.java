@@ -55,7 +55,7 @@ public class ActiveAlarmApiSample {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "ListActiveAlertRule");
-        //必选,userId
+        //选填,userId
         params.put("UserId", userId);
         //必选，产品名,可选的值为：ecs,rds,slb,redisa,mongodb,mongodb_sharding,hbase,elasticsearch,opensearch
         params.put("Product", product);
@@ -81,7 +81,7 @@ public class ActiveAlarmApiSample {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "EnableActiveAlert");
-        //必选,userId
+        //选填,userId
         params.put("UserId", userId);
         //必选，产品名,可选的值为：ecs,rds,slb,redisa,mongodb,mongodb_sharding,hbase,elasticsearch,opensearch
         params.put("Product", product);
@@ -100,7 +100,7 @@ public class ActiveAlarmApiSample {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "DisableActiveAlert");
-        //必选,userId
+        //选填,userId
         params.put("UserId", userId);
         //必选，产品名,可选的值为：ecs,rds,slb,redisa,mongodb,mongodb_sharding,hbase,elasticsearch,opensearch
         params.put("Product", product);

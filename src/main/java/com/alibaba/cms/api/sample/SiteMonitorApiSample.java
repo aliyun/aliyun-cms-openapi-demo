@@ -161,7 +161,7 @@ public class SiteMonitorApiSample {
 
 
     /**
-     * 创建站点监控，返回站点监控任务id
+     * 修改站点监控，返回站点监控任务id
      */
     public static void modifyTask(String taskId) {
         String httpMethod = "GET";
