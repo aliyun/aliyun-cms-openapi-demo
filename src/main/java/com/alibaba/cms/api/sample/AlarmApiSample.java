@@ -2,6 +2,7 @@ package com.alibaba.cms.api.sample;
 
 import com.alibaba.cms.common.util.HttpClientUtils;
 import com.alibaba.cms.common.util.SignatureUtils;
+import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +24,7 @@ public class AlarmApiSample {
      * 为了简化调用，只暴露了部分参数可配置。<br/>
      * 具体参数设置见 https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.6.677.7FtWb7
      */
-    public static void createAlarm(String alarmName, String namespace, String metricName, String dimensions,
+    public static String createAlarm(String alarmName, String namespace, String metricName, String dimensions,
                                    String statistics, String comparisonOperator, String threshold) {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
@@ -60,19 +61,21 @@ public class AlarmApiSample {
         params.put("Webhook", "{\"url\":\"https://www.abc.com/xxx/\",\"method\":\"get\",\"params\":{}}");
 
         params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
-        HttpClientUtils.get(endpoint, params);
+        String response = HttpClientUtils.get(endpoint, params);
+
+        return JSON.parseObject(response).getString("Data");
     }
 
     /**
      * 修改报警规则<br/>
      * 具体参数设置见 https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.6.677.7FtWb7
      */
-    public static void updateAlarm() {
+    public static void updateAlarm(String alarmId) {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "UpdateAlarm");
         //必选
-        params.put("Id", "your_alarm_id");
+        params.put("Id", alarmId);
         //可选，报警规则名称
         params.put("Name", "alarm-name-update");
         //可选，设置联系组，为json array对应的string
@@ -105,12 +108,12 @@ public class AlarmApiSample {
     /**
      * 禁用报警规则。报警规则停止后，将停止探测关联实例的监控项数据
      */
-    public static void disableAlarm() {
+    public static void disableAlarm(String alarmId) {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "DisableAlarm");
 
-        params.put("Id", "alarm_id");
+        params.put("Id", alarmId);
 
         params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
         HttpClientUtils.get(endpoint, params);
@@ -119,12 +122,12 @@ public class AlarmApiSample {
     /**
      * 启动报警规则，当您的报警规则处于停止状态时，可以使用此接口启用报警规则
      */
-    public static void enableAlarm() {
+    public static void enableAlarm(String alarmId) {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "EnableAlarm");
 
-        params.put("Id", "alarm_id");
+        params.put("Id", alarmId);
 
         params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
         HttpClientUtils.get(endpoint, params);
@@ -133,14 +136,14 @@ public class AlarmApiSample {
     /**
      * 获取报警规则列表
      * */
-    public static void listAlarm() {
+    public static void listAlarm(String alarmId) {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "ListAlarm");
         //所有参数均为可选参数，根据输入的参数进行结果过滤
 
         //报警规则的id
-        params.put("Id", "your_alarm_id");
+        params.put("Id", alarmId);
         //报警规则名称，支持模糊查询
         params.put("Name", "your_alarm_name");
         // 对应产品的project名称 https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.6.677.7FtWb7#h2--ecs-2
@@ -162,12 +165,12 @@ public class AlarmApiSample {
     /**
      * 删除已创建的报警规则
      */
-    public static void deleteAlarm() {
+    public static void deleteAlarm(String alarmId) {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "DeleteAlarm");
 
-        params.put("Id", "alarm_id");
+        params.put("Id", alarmId);
 
         params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
         HttpClientUtils.get(endpoint, params);
@@ -219,7 +222,7 @@ public class AlarmApiSample {
      * 获取报警历史
      * 可根据需要输入对应字段做过滤
      */
-    public static void describeAlarmHistory() {
+    public static void describeAlarmHistory(String alarmId) {
         String httpMethod = "GET";
         Map<String, String> params = new HashMap<>();
         params.put("Action", "DescribeAlarmHistory");
@@ -227,26 +230,26 @@ public class AlarmApiSample {
 
 
         // 应用分组ID
-        params.put("GroupId", "group_id");
+        //params.put("GroupId", "group_id");
         // 创建报警规则时云监控自动产生的唯一标识
-        params.put("AlertName", "your_alarm_id");
+        params.put("AlertName", alarmId);
         // 创建报警规则时用户定义的规则名称
-        params.put("RuleName", "");
+        //params.put("RuleName", "");
         // 报警规则监控的产品
-        params.put("Namespace", "");
+        //params.put("Namespace", "");
         // 报警规则监控的指标
-        params.put("MetricName", "");
+        //params.put("MetricName", "");
         //与EndTime最多间隔最长三天，可查询一年之内的数据，目前仅支持timestamp格式的时间
-        params.put("StartTime", "1527055096000");
-        params.put("EndTime", "1527057096000");
+        //params.put("StartTime", "1527055096000");
+        //params.put("EndTime", "1527057096000");
         // 查询结果是否只返回结果条数，默认是false
-        params.put("OnlyCount", "true");
+        //params.put("OnlyCount", "true");
         // 查询结果是否正序返回，默认是false
-        params.put("Ascending", "false");
+        //params.put("Ascending", "false");
         // 报警状态,OK是恢复，ALARM是报警
-        params.put("State", "ALARM");
+        //params.put("State", "ALARM");
         // 报警通知发送状态，0为已通知用户，1为不在生效期未通知，2为处于报警沉默期未通知
-        params.put("Status", "0");
+        //params.put("Status", "0");
         params.put("PageSize", "10");
         params.put("Page", "1");
 
@@ -261,7 +264,7 @@ public class AlarmApiSample {
         getContacts();
         describeContact();
         // 2. 创建报警
-        createAlarm("created_by_api",
+        String alarmId = createAlarm("your_alarm_name",
             "acs_ecs_dashboard",
             "CPUUtilization",
             "[{\"instanceId\":\"your_instance_id\"}]",
@@ -269,17 +272,17 @@ public class AlarmApiSample {
             ">=",
             "10");
         // 3. 修改报警
-        updateAlarm();
+        updateAlarm(alarmId);
         // 4. 查看报警
-        listAlarm();
+        listAlarm(alarmId);
         // 5. 禁用报警
-        disableAlarm();
+        disableAlarm(alarmId);
         // 6. 启用报警
-        enableAlarm();
+        enableAlarm(alarmId);
         // 7. 查看报警历史
-        describeAlarmHistory();
+        describeAlarmHistory(alarmId);
         // 8. 删除报警
-        deleteAlarm();
+        deleteAlarm(alarmId);
     }
 
 }

@@ -36,21 +36,28 @@ public class SiteMonitorSdkSample {
         //4、获取对应报警规则的报警历史
         String availabilityAlarmId = getAlarmIdFromCreateTaskResponse(createTaskResponse, "Availability");
         String responseTimeAlarmId = getAlarmIdFromCreateTaskResponse(createTaskResponse, "ResponseTime");
-        describeAlarmHistory();
+        AlarmSdkSample.describeAlarmHistory(availabilityAlarmId);
+        AlarmSdkSample.describeAlarmHistory(responseTimeAlarmId);
         //5、停止探测任务
         stopTask(taskId);
         //6、启动探测任务
         startTask(taskId);
         //7、修改站点监控探测任务
         modifyTask(taskId);
-        //8、删除站点监控探测任务
-        deleteTask(taskId);
-        //9、获取站点监控的任务列表
+        //8、获取站点监控的任务列表
         getTasks();
-        //10、获取站点监控的数据信息
-        queryMetricList();
-        //11、获取站点监控的当前最新的数据信息
-        queryMetricLast();
+        //9、获取站点监控的数据信息
+        QueryMetricSdkSample.queryMetricList(
+            "acs_networkmonitor",   // 站点监控对应的project
+            "Availability",         // 监控项名称: Availability:可用性/ResponseTime:平均响应时间
+            "[{\"taskId\":\"task_A_id\"}]");  // Dimensions, json array 字符串格式，指定想要查询的taskId
+        //10、获取站点监控的当前最新的数据信息
+        QueryMetricSdkSample.queryMetricLast(
+            "acs_networkmonitor",   // 站点监控对应的project
+            "Availability",         // 监控项名称: Availability:可用性/ResponseTime:平均响应时间
+            "[{\"taskId\":\"task_A_id\"}]");  // Dimensions, json array 字符串格式，指定想要查询的taskId
+        //11、删除站点监控探测任务
+        deleteTask(taskId);
     }
 
     /**
@@ -219,48 +226,6 @@ public class SiteMonitorSdkSample {
     }
 
 
-    /**
-     * 创建站点监控，返回站点监控任务id
-     */
-    public static void describeAlarmHistory() {
-        IClientProfile profile = DefaultProfile.getProfile(REGION_ID_BEIJING, accessKeyId, accessKeySecret);
-        IAcsClient client = new DefaultAcsClient(profile);
-
-        DescribeAlarmHistoryRequest request = new DescribeAlarmHistoryRequest();
-        // 应用分组ID
-        request.setGroupId("group_id");
-        // 创建报警规则时云监控自动产生的唯一标识
-        request.setAlertName("alarm_id");
-        // 创建报警规则时用户定义的规则名称
-        request.setRuleName("your_task_name");
-        // 报警规则监控的产品, 站点监控=acs_networkmonitor
-        request.setNamespace("acs_networkmonitor");
-        // 报警规则监控的指标, 例如Availability，代表可用性, ResponseTime代表响应时间
-        request.setMetricName("Availability");
-        //与EndTime最多间隔最长三天，可查询一年之内的数据，目前仅支持timestamp格式的时间
-        request.setStartTime(String.valueOf(System.currentTimeMillis() - 1000 * 60 * 60 * 24));
-        request.setEndTime(String.valueOf(System.currentTimeMillis()));
-        // 查询结果是否只返回结果条数，默认是false
-        request.setOnlyCount(false);
-        // 查询结果是否正序返回，默认是false
-        request.setAscending(true);
-        // 报警状态,OK是恢复，ALARM是报警
-        request.setState("ALARM");
-        // 报警通知发送状态，0为已通知用户，1为不在生效期未通知，2为处于报警沉默期未通知
-        request.setStatus("0");
-        // 查询分页信息
-        request.setPageSize(10);
-        request.setPage(1);
-
-        try {
-            logger.info("sending DescribeAlarmHistoryRequest...");
-            DescribeAlarmHistoryResponse response = client.getAcsResponse(request);
-            logger.info("DescribeAlarmHistoryResponse:\n{}", JSON.toJSONString(response,true));
-        } catch (ClientException e) {
-            logger.error(e.getMessage());
-        }
-    }
-
     public static String getTaskDetail(String taskId) {
         IClientProfile profile = DefaultProfile.getProfile(REGION_ID_BEIJING, accessKeyId, accessKeySecret);
         IAcsClient client = new DefaultAcsClient(profile);
@@ -344,82 +309,6 @@ public class SiteMonitorSdkSample {
             logger.info("response.getData():\n{}", JSON.toJSONString(JSON.parseArray(response.getData()), true));
         } catch (ClientException e) {
             logger.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 查询站点监控的监控数据
-     * */
-    public static void queryMetricList() {
-        IClientProfile profile = DefaultProfile.getProfile(REGION_ID_BEIJING, accessKeyId, accessKeySecret);
-        IAcsClient client = new DefaultAcsClient(profile);
-
-        QueryMetricListRequest request = new QueryMetricListRequest();
-        request.setAcceptFormat(FormatType.JSON);
-        // 对应产品的project名称，站点监控为
-        request.setProject("acs_networkmonitor");
-        // 监控项名称: Availability:可用性/ResponseTime:平均响应时间
-        request.setMetric("Availability");
-        // Dimensions, json array 字符串格式，指定想要查询的taskId
-        JSONArray dimensions = new JSONArray();
-        JSONObject dimension = new JSONObject();
-        dimension.put("taskId", "your_task_id");
-        dimensions.add(dimension);
-        request.setDimensions(dimension.toJSONString());
-        // 时间间隔，统一用秒数来计算，例如 60, 300, 900。 如果不填写,则按照注册监控项时申明的上报周期来查询原始数据。如果填写统计周期，则查询对应的统计数据 。
-        request.setPeriod("60");
-        request.setStartTime(String.valueOf(System.currentTimeMillis() - 1000 * 60 * 24));
-        request.setEndTime(String.valueOf(System.currentTimeMillis()));
-        // 每次拉取的数据数量
-        request.setLength("10");
-        // 当返回的数据点大于一页的时候，会返回cursor值，可以传入该值继续查询，直到没有cursor返回表示所有数据都已经返回
-        //request.setCursor("");
-
-        try {
-            logger.info("sending QueryMetricListRequest...");
-            QueryMetricListResponse response = client.getAcsResponse(request);
-            logger.info("QueryMetricListResponse:\n{}", JSON.toJSONString(response,true));
-            logger.info("response.getDatapoints():\n{}", JSON.toJSONString(JSON.parseArray(response.getDatapoints()), true));
-        } catch (ClientException e) {
-            logger.info(e.getMessage());
-        }
-    }
-
-    /**
-     * 查询站点监控的最新的监控数据， 和queryMetricList的参数一致，但是只返回给定时间段内的最新的数据
-     * */
-    public static void queryMetricLast() {
-        IClientProfile profile = DefaultProfile.getProfile(REGION_ID_BEIJING, accessKeyId, accessKeySecret);
-        IAcsClient client = new DefaultAcsClient(profile);
-
-        QueryMetricLastRequest request = new QueryMetricLastRequest();
-        request.setAcceptFormat(FormatType.JSON);
-        // 对应产品的project名称，站点监控为
-        request.setProject("acs_networkmonitor");
-        // 监控项名称: Availability:可用性/ResponseTime:平均响应时间
-        request.setMetric("Availability");
-        // Dimensions, json array 字符串格式，指定想要查询的taskId
-        JSONArray dimensions = new JSONArray();
-        JSONObject dimension = new JSONObject();
-        dimension.put("taskId", "your_task_id");
-        dimensions.add(dimension);
-        request.setDimensions(dimensions.toJSONString());
-        // 时间间隔，统一用秒数来计算，例如 60, 300, 900。 如果不填写,则按照注册监控项时申明的上报周期来查询原始数据。如果填写统计周期，则查询对应的统计数据 。
-        request.setPeriod("60");
-        request.setStartTime(String.valueOf(System.currentTimeMillis() - 1000 * 60 * 24));
-        request.setEndTime(String.valueOf(System.currentTimeMillis()));
-        // 每次拉取的数据数量
-        request.setLength("10");
-        // 当返回的数据点大于一页的时候，会返回cursor值，可以传入该值继续查询，直到没有cursor返回表示所有数据都已经返回
-        //request.setCursor("");
-
-        try {
-            logger.info("sending QueryMetricLastRequest...");
-            QueryMetricLastResponse response = client.getAcsResponse(request);
-            logger.info("QueryMetricLastResponse:\n{}", JSON.toJSONString(response,true));
-            logger.info("response.getDatapoints():\n{}", JSON.toJSONString(JSON.parseArray(response.getDatapoints()), true));
-        } catch (ClientException e) {
-            logger.info(e.getMessage());
         }
     }
 

@@ -5,6 +5,8 @@ import com.alibaba.cms.common.util.SignatureUtils;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,10 +52,10 @@ public class SiteMonitorApiSample {
         //4、获取对应报警规则的报警历史
         //可用性报警监控
         String availabilityAlarmId = getAlarmIdFromCreateTaskResponse(createTaskResponse, "Availability");
-        getAlarmHistory(availabilityAlarmId);
+        AlarmApiSample.describeAlarmHistory(availabilityAlarmId);
         //响应时间报警监控
         String responseTimeAlarmId = getAlarmIdFromCreateTaskResponse(createTaskResponse, "ResponseTime");
-        getAlarmHistory(responseTimeAlarmId);
+        AlarmApiSample.describeAlarmHistory(responseTimeAlarmId);
         //5、停止探测任务
         stopTask(taskId);
         //6、启动探测任务
@@ -63,9 +65,15 @@ public class SiteMonitorApiSample {
         //8、获取站点监控的任务列表
         getTasks();
         //9、获取站点监控的数据信息
-        queryMetricList();
+        QueryMetricApiSample.queryMetricList(
+            "acs_networkmonitor",   // 站点监控对应的project
+            "Availability",         // 监控项名称: Availability:可用性/ResponseTime:平均响应时间
+            "[{\"taskId\":\"task_A_id\"}]");  // Dimensions, json array 字符串格式，指定想要查询的taskId
         //10、获取站点监控的当前最新的数据信息
-        queryMetricLast();
+        QueryMetricApiSample.queryMetricLast(
+            "acs_networkmonitor",   // 站点监控对应的project
+            "Availability",         // 监控项名称: Availability:可用性/ResponseTime:平均响应时间
+            "[{\"taskId\":\"task_A_id\"}]");  // Dimensions, json array 字符串格式，指定想要查询的taskId
         //11、删除站点监控探测任务
         deleteTask(taskId);
     }
@@ -106,7 +114,6 @@ public class SiteMonitorApiSample {
 
     /**
      * 创建站点监控，返回站点监控任务id
-     *
      */
     public static JSONObject createTask(String ispCities) {
         String httpMethod = "GET";
@@ -117,10 +124,11 @@ public class SiteMonitorApiSample {
         params.put("TaskName", taskName);
         //TaskType:1 代表http
         params.put("TaskType", "1");
-        //设置监测频率为5min
+        //设置监测频率为5min, 必选
         params.put("Interval", "5");
         //设置探针
         params.put("IspCity", ispCities);
+
         //设置httpMethod、header、cookie等高级设置
         //match_rule=0 表示包含匹配内容则报警， match_rule=1表示不包含匹配内容则报警
         //response_content: 指定匹配内容来检查响应内容是否正确，为空则不做匹配检查。匹配内容仅支持英文
@@ -145,36 +153,12 @@ public class SiteMonitorApiSample {
             + "    \"expression\": \"$Average>5200\""      // 单位为ms
             + "  }"
             + "]");
-
         params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
 
         String responseStr = HttpClientUtils.get(endpoint, params);
         return JSON.parseObject(responseStr);
     }
 
-    /**
-     * 获取报警历史
-     */
-    public static String getAlarmHistory(String alarmRuleId) {
-        String httpMethod = "GET";
-        Map<String, String> params = new HashMap<>();
-        params.put("Action", "ListAlarmHistory");
-        //可选，报警规则的id
-        params.put("Id", alarmRuleId);
-        //可选，每页记录数，默认值：100
-        params.put("Size", "50");
-        //可选，查询数据开始时间，默认24小时前，可以输入long型时间，也可以输入yyyy-MM-dd HH:mm:ss类型时间
-        params.put("StartTime", "2018-05-17 00:00:00");
-        //可选，查询数据结束时间，默认24小时前，可以输入long型时间，也可以输入yyyy-MM-dd HH:mm:ss类型时间
-        params.put("EndTime", "2018-05-17 20:30:00");
-        //可选，查询数据的起始位置，为空则按时间查询前100条
-        params.put("Cursor", "2");
-
-        params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
-
-        String responseStr = HttpClientUtils.get(endpoint, params);
-        return responseStr;
-    }
 
     /**
      * 创建站点监控，返回站点监控任务id
@@ -284,57 +268,10 @@ public class SiteMonitorApiSample {
         //筛选任务类型，1：http
         params.put("TaskType", "1");
         params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
-        String responseStr = HttpClientUtils.get(endpoint, params);
 
-        return responseStr;
+        return HttpClientUtils.get(endpoint, params);
     }
 
-    /**
-     * 查询站点监控的监控数据
-     * */
-    public static void queryMetricList() {
-        Map<String, String> params = new HashMap<>();
-        params.put("Action", "QueryMetricList");
-        // 对应产品的project名称，站点监控为
-        params.put("Project", "acs_networkmonitor");
-        // 监控项名称: Availability:可用性/ResponseTime:平均响应时间
-        params.put("Metric", "Availability");
-        // Dimensions, json array 字符串格式，指定想要查询的taskId
-        params.put("Dimensions", "[{\"taskId\":\"your_task_id\"}]");
-        params.put("StartTime", "2018-05-23 14:00:00");
-        params.put("EndTime", "2018-05-23 23:59:59");
-        // 时间间隔，统一用秒数来计算，例如 60, 300, 900。 如果不填写,则按照注册监控项时申明的上报周期来查询原始数据。如果填写统计周期，则查询对应的统计数据 。
-        params.put("Period", "60");
-        params.put("Length", "5");
-        // 当返回的数据点大于一页的时候，会返回cursor值，可以传入该值继续查询，直到没有cursor返回表示所有数据都已经返回
-        //params.put("Cursor", "");
-        params = SignatureUtils.appendPublicParams(params, "GET", accessKeyId, accessKeySecret);
-        HttpClientUtils.get(endpoint, params);
-    }
-
-    /**
-     * 查询站点监控的最新的监控数据， 和queryMetricList的参数一致，但是只返回给定时间段内的最新的数据
-     * */
-    public static void queryMetricLast() {
-        Map<String, String> params = new HashMap<>();
-        params.put("Action", "QueryMetricLast");
-        // 对应产品的project名称，站点监控为
-        params.put("Project", "acs_networkmonitor");
-        // 监控项名称: Availability:可用性/ResponseTime:平均响应时间
-        params.put("Metric", "Availability");
-        // Dimensions, json array 字符串格式，指定想要查询的taskId
-        params.put("Dimensions", "[{\"taskId\":\"your_task_id\"}]");
-        // 如果不指定时间段，返回最新的数据
-        //params.put("StartTime", "2018-05-23 14:00:00");
-        //params.put("EndTime", "2018-05-23 23:59:59");
-        // 时间间隔，统一用秒数来计算，例如 60, 300, 900。 如果不填写,则按照注册监控项时申明的上报周期来查询原始数据。如果填写统计周期，则查询对应的统计数据 。
-        params.put("Period", "60");
-        params.put("Length", "5");
-        // 当返回的数据点大于一页的时候，会返回cursor值，可以传入该值继续查询，直到没有cursor返回表示所有数据都已经返回
-        //params.put("Cursor", "");
-        params = SignatureUtils.appendPublicParams(params, "GET", accessKeyId, accessKeySecret);
-        HttpClientUtils.get(endpoint, params);
-    }
 
     private static String getTaskIdFromCreateTaskResponse(JSONObject response) {
         JSONObject obj = response.getJSONObject("Data");
