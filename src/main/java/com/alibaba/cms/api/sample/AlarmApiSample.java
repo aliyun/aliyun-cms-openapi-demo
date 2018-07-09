@@ -257,6 +257,35 @@ public class AlarmApiSample {
         HttpClientUtils.get(endpoint, params);
     }
 
+    /**
+     * 获取报警规则列表
+     *
+     * @param applyMode  GROUP_INSTANCE_FIRST or ALARM_TEMPLATE_FIRST
+     * @param templateIds separate by comma: 1234,3456
+     * */
+    public static void applyTemplate(String groupId, String templateIds, String applyMode) {
+        String httpMethod = "GET";
+        Map<String, String> params = new HashMap<>();
+        params.put("Action", "ApplyTemplate");
+        // 应用分组Id
+        params.put("GroupId", groupId);
+        // 报警模板Id：多个英文逗号分隔
+        params.put("TemplateIds", templateIds);
+        // GROUP_INSTANCE_FIRST：分组实例优先模式，应用报警模板的时候，以分组实例优先，如果分组中不存在这种实例则忽略模板中的规则；ALARM_TEMPLATE_FIRST：模板实例优先模式，应用报警模板的时候，不管分组中是否存在这种实例，都创建出这种规则
+        params.put("ApplyMode", applyMode);
+        // Warning (手机+邮箱+旺旺+钉钉机器人)--对应level=3；Info(邮箱+旺旺+钉钉机器人)--对应level=4
+        params.put("NotifyLevel", "3");
+        // 开始生效时间，值为0-23之间的整数，默认为0
+        params.put("EnableStartTime", "0");
+        // 结束生效时间，值为0-23之间的整数，默认为23
+        params.put("EnableEndTime", "23");
+        // 通道沉默时间，单位为秒，默认为86400，即24小时
+        params.put("SilenceTime", "86400");
+
+        params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
+        HttpClientUtils.get(endpoint, params);
+    }
+
 
     public static void main(String[] args) {
         // 1. 查看联系人祖
@@ -283,6 +312,8 @@ public class AlarmApiSample {
         describeAlarmHistory(alarmId);
         // 8. 删除报警
         deleteAlarm(alarmId);
+        // 9. 应用报警模板
+        applyTemplate("<your_group_id>","<your_template_ids>","ALARM_TEMPLATE_FIRST");
     }
 
 }

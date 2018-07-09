@@ -322,6 +322,41 @@ public class AlarmSdkSample {
         }
     }
 
+    /**
+     * 获取报警规则列表
+     *
+     * @param applyMode  GROUP_INSTANCE_FIRST or ALARM_TEMPLATE_FIRST
+     * @param templateIds 123,456,678
+     * */
+    public static void applyTemplate(Long groupId, String templateIds, String applyMode) {
+        IClientProfile profile = DefaultProfile.getProfile(REGION_ID_BEIJING, accessKeyId, accessKeySecret);
+        IAcsClient client = new DefaultAcsClient(profile);
+        ApplyTemplateRequest request = new ApplyTemplateRequest();
+        request.setAcceptFormat(FormatType.JSON);
+        // 应用分组Id
+        request.setGroupId(groupId);
+        // 报警模板Id：多个英文逗号分隔
+        request.setTemplateIds(templateIds);
+        // GROUP_INSTANCE_FIRST：分组实例优先模式，应用报警模板的时候，以分组实例优先，如果分组中不存在这种实例则忽略模板中的规则；ALARM_TEMPLATE_FIRST：模板实例优先模式，应用报警模板的时候，不管分组中是否存在这种实例，都创建出这种规则
+        request.setApplyMode(applyMode);
+        // Warning (手机+邮箱+旺旺+钉钉机器人)--对应level=3；Info(邮箱+旺旺+钉钉机器人)--对应level=4
+        request.setNotifyLevel(3L);
+        // 开始生效时间，值为0-23之间的整数，默认为0
+        request.setEnableStartTime(0L);
+        // 结束生效时间，值为0-23之间的整数，默认为23
+        request.setEnableEndTime(23L);
+        // 通道沉默时间，单位为秒，默认为86400，即24小时
+        request.setSilenceTime(86400L);
+
+
+        try {
+            logger.info("sending ApplyTemplateRequest...");
+            ApplyTemplateResponse response = client.getAcsResponse(request);
+            logger.info("ListAlarmResponse:\n{}", JSON.toJSONString(response,true));
+        } catch (ClientException e) {
+            logger.info(e.getMessage());
+        }
+    }
 
     public static void main(String[] args) {
         // 1. 查看联系人祖
@@ -348,6 +383,8 @@ public class AlarmSdkSample {
         describeAlarmHistory(alarmId);
         // 8. 删除报警
         deleteAlarm(alarmId);
+        // 9. 应用报警模板
+        applyTemplate(123456L,"<your_template_ids>","ALARM_TEMPLATE_FIRST");
     }
 
 }
