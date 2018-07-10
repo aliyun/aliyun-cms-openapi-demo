@@ -65,17 +65,26 @@ public class SetupApplicationGroupForMonitoring {
             client.getAcsResponse(request1);
             logger.info("set dynamic rules for ECS instances");
 
-            // 3. 添加指定的RDS实例到应用分组
-            AddMyGroupInstancesRequest request2 = new AddMyGroupInstancesRequest();
+            // 2-3. 将分组授权给指定子账号（可选）; 需要授权的子账号ID，可以在RAM控制台->子账号详情里看到
+            UpdateMyGroupMembersRequest request2 = new UpdateMyGroupMembersRequest();
             request2.setGroupId(groupId);
-            request2.setInstances("["
+            // 授予子账号分组的管理员权限。
+            request2.setMasters("<sub_account_id_1>,<sub_account_id_2>");
+            // 授予子账号分组的只读权限。
+            request2.setReaders("<sub_account_id_3>,<sub_account_id_4>");
+            logger.info("authorized to sub accounts");
+
+            // 3. 添加指定的RDS实例到应用分组
+            AddMyGroupInstancesRequest request3 = new AddMyGroupInstancesRequest();
+            request3.setGroupId(groupId);
+            request3.setInstances("["
                 + "  {"
                 + "    \"instanceId\": \"<your_instance_id>\","
                 + "    \"category\": \"RDS\","
                 + "    \"regionId\": \"cn-qingdao\""
                 + "  }"
                 + "]");
-            client.getAcsResponse(request2);
+            client.getAcsResponse(request3);
             logger.info("added RDS instances");
 
 
@@ -84,11 +93,11 @@ public class SetupApplicationGroupForMonitoring {
             logger.info("manually create alarm templates, and get template ids");
 
             // 5. 应用报警模板到应用分组
-            ApplyTemplateRequest request3 = new ApplyTemplateRequest();
-            request3.setGroupId(groupId);
-            request3.setTemplateIds(templateIds);
-            request3.setApplyMode("ALARM_TEMPLATE_FIRST");
-            client.getAcsResponse(request3);
+            ApplyTemplateRequest request4 = new ApplyTemplateRequest();
+            request4.setGroupId(groupId);
+            request4.setTemplateIds(templateIds);
+            request4.setApplyMode("ALARM_TEMPLATE_FIRST");
+            client.getAcsResponse(request4);
             logger.info("applied templates to application groups");
         } catch (ClientException e) {
             logger.error("application group scenario creation failed.");
