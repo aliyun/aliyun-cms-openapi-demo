@@ -5,8 +5,6 @@ import com.alibaba.cms.common.util.SignatureUtils;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +41,7 @@ public class SiteMonitorApiSample {
         String ispCityMsg = getIspAreaCity(ispCityMap);
 
         //2、新建站点监控
-        JSONObject createTaskResponse = createTask(ispCityMsg);
+        JSONObject createTaskResponse = createHttpTask(ispCityMsg);
         String taskId = getTaskIdFromCreateTaskResponse(createTaskResponse);
 
         //3、获取站点监控详细信息
@@ -113,9 +111,9 @@ public class SiteMonitorApiSample {
     }
 
     /**
-     * 创建站点监控，返回站点监控任务id
+     * 创建站点监控，监测类型为http,返回站点监控任务id
      */
-    public static JSONObject createTask(String ispCities) {
+    public static JSONObject createHttpTask(String ispCities) {
         String httpMethod = "GET";
         String taskName = "your_site_monitor_task_name";
         Map<String, String> params = new HashMap<>();
@@ -153,6 +151,57 @@ public class SiteMonitorApiSample {
             + "    \"expression\": \"$Average>5200\""      // 单位为ms
             + "  }"
             + "]");
+        params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
+
+        String responseStr = HttpClientUtils.get(endpoint, params);
+        return JSON.parseObject(responseStr);
+    }
+
+    /**
+     * 创建站点监控，ping,返回站点监控任务id
+     */
+    public static JSONObject createPingTask(String ispCities) {
+        String httpMethod = "GET";
+        String taskName = "your_site_monitor_task_name";
+        Map<String, String> params = new HashMap<>();
+        params.put("Action", "CreateTask");
+        params.put("Address", "123.456.789.012");
+        params.put("TaskName", taskName);
+        //TaskType:2 = ping
+        params.put("TaskType", "2");
+        //设置监测频率为5min, 必选
+        params.put("Interval", "5");
+        //设置探针
+        params.put("IspCity", ispCities);
+        //设置ping的高级设置
+        params.put("Options", "{"
+            // 设置丢包率，以此判断ping任务的状态, 返回相应状态码。当丢包率大于阈值时，会触发检验网络的操作，通过ping诸如baidu,taobao等权威站点来保证网络环境是ok的。
+            // 若网络环境不ok,返回550表示网络不通;若网络环境OK，且丢包率大于阈值，返回610，网络稳定但是探测均失败;613host解析失败。可在错误率页面查看。
+            // 和报警的阈值没有直接关系。
+            + "  \"failure_rate\": 0.5,"
+            + "  \"ping_num\": 10,"         // ping包数量
+            + "  \"hops\": 30,"             // 设置traceroute的hops值
+            + "  \"traceroute\": 0"         // 是否启用traceroute命令，0 为不启用，页面暂时不支持
+            + "}"
+        );
+        //创建任务的时候同时设置报警规则(json Array 字符串格式)
+        params.put("AlertRule", "["
+            + "  {"
+            + "    \"alarmActions\": ["
+            + "      \"he_group\""          // 报警联系组
+            + "    ],"
+            + "    \"metricName\": \"PingLossRate\","   // 丢包率
+            + "    \"expression\": \"$Average>80\""    // 单位为%
+            + "  },"
+            + "  {"
+            + "    \"alarmActions\": ["
+            + "      \"he_group\""
+            + "    ],"
+            + "    \"metricName\": \"ResponseTime\","       // 响应时间
+            + "    \"expression\": \"$Average>400\""      // 单位为ms
+            + "  }"
+            + "]");
+
         params = SignatureUtils.appendPublicParams(params, httpMethod, accessKeyId, accessKeySecret);
 
         String responseStr = HttpClientUtils.get(endpoint, params);

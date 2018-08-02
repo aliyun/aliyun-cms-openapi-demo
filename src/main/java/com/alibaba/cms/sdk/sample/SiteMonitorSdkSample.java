@@ -28,7 +28,7 @@ public class SiteMonitorSdkSample {
         String ispCityMsg = getIspAreaCity();
 
         //2、新建站点监控
-        CreateTaskResponse createTaskResponse = createTask(ispCityMsg);
+        CreateTaskResponse createTaskResponse = createHttpTask(ispCityMsg);
         String taskId = getTaskIdFromCreateTaskResponse(createTaskResponse);
         //3、获取站点监控详细信息
         getTaskDetail(taskId);
@@ -96,10 +96,9 @@ public class SiteMonitorSdkSample {
     }
 
     /**
-     * 创建站点监控，返回站点监控任务id
-     *
+     * 创建站点监控, 监测类型为http, 返回站点监控任务id
      */
-    public static CreateTaskResponse createTask(String ispCities) {
+    public static CreateTaskResponse createHttpTask(String ispCities) {
         IClientProfile profile = DefaultProfile.getProfile(REGION_ID_BEIJING, accessKeyId, accessKeySecret);
         IAcsClient client = new DefaultAcsClient(profile);
 
@@ -152,6 +151,68 @@ public class SiteMonitorSdkSample {
 
         return null;
     }
+
+    /**
+     * 创建站点监控, 监测类型为ping, 返回站点监控任务id
+     *
+     */
+    public static CreateTaskResponse createPingTask(String ispCities) {
+        IClientProfile profile = DefaultProfile.getProfile(REGION_ID_BEIJING, accessKeyId, accessKeySecret);
+        IAcsClient client = new DefaultAcsClient(profile);
+
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setAcceptFormat(FormatType.JSON);
+
+        request.setAddress("123.456.789.012");
+        request.setTaskName("your_task_name");
+        //TaskType:2 ping
+        request.setTaskType("2");
+        //设置监测频率为5min
+        request.setInterval("5");
+        //设置探针
+        request.setIspCity(ispCities);
+        //设置ping的高级设置
+        request.setOptions("{"
+            // 设置丢包率，以此判断ping任务的状态, 返回相应状态码。当丢包率大于阈值时，会触发检验网络的操作，通过ping诸如baidu,taobao等权威站点来保证网络环境是ok的。
+            // 若网络环境不ok,返回550表示网络不通;若网络环境OK，且丢包率大于阈值，返回610，网络稳定但是探测均失败;613host解析失败。可在错误率页面查看。
+            // 和报警的阈值没有直接关系。
+            + "  \"failure_rate\": 0.5,"
+            + "  \"ping_num\": 10,"     // ping包数量
+            + "  \"hops\": 30,"     // 设置traceroute的hops值
+            + "  \"traceroute\": 0" // 是否启用traceroute命令，0 为不启用，页面暂时不支持
+            + "}"
+        );
+        //创建任务的时候同时设置报警规则(json Array 字符串格式)
+        request.setAlertRule("["
+            + "  {"
+            + "    \"alarmActions\": ["
+            + "      \"he_group\""          // 报警联系组
+            + "    ],"
+            + "    \"metricName\": \"PingLossRate\","   // 丢包率
+            + "    \"expression\": \"$Average>80\""    // 单位为%
+            + "  },"
+            + "  {"
+            + "    \"alarmActions\": ["
+            + "      \"he_group\""
+            + "    ],"
+            + "    \"metricName\": \"ResponseTime\","       // 响应时间
+            + "    \"expression\": \"$Average>400\""      // 单位为ms
+            + "  }"
+            + "]");
+
+        try {
+            logger.info("sending CreateTaskRequest...");
+            CreateTaskResponse response = client.getAcsResponse(request);
+            logger.info("CreateTaskResponse:\n{}", JSON.toJSONString(response,true));
+            logger.info("response.getData():\n{}", JSON.toJSONString(JSON.parseObject(response.getData()), true));
+            return response;
+        } catch (ClientException e) {
+            logger.error(e.getMessage());
+        }
+
+        return null;
+    }
+
 
     /**
      * 修改站点监控，返回站点监控任务id
